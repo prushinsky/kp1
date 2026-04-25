@@ -59,6 +59,32 @@ def get_openrouter_api_key():
     
     return api_key if api_key else None
 
+
+def get_provider_settings(provider: str):
+    provider = (provider or "openrouter").strip().lower()
+    if provider == "ollama":
+        base_url = os.environ.get("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+        model = os.environ.get("OLLAMA_MODEL", "llama3.1")
+        return {
+            "provider": "ollama",
+            "api_key": "ollama",
+            "base_url": base_url,
+            "model": model,
+            "is_available": True,
+            "help_message": "Убедитесь, что локальный сервер Ollama запущен (например, `ollama serve`).",
+        }
+
+    api_key = get_openrouter_api_key()
+    base_url = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+    model = os.environ.get("OPENROUTER_MODEL", "openai/gpt-3.5-turbo")
+    return {
+        "provider": "openrouter",
+        "api_key": api_key,
+        "base_url": base_url,
+        "model": model,
+        "is_available": bool(api_key),
+    }
+
 def main():
     st.title("📊 Анализ условий КП")
     st.markdown("Загрузите Excel файл с коммерческими предложениями (КП) для анализа и выбора лучшего варианта")
@@ -74,16 +100,22 @@ def main():
         weight_delivery = st.slider("Вес условий поставки", 0.0, 1.0, 0.3, 0.05)
         weight_reliability = st.slider("Вес надежности", 0.0, 1.0, 0.3, 0.05)
         
-        use_llm = st.checkbox("Использовать LLM анализ (OpenRouter)", value=True)
+        use_llm = st.checkbox("Использовать LLM анализ", value=True)
+        llm_provider = st.selectbox(
+            "Провайдер LLM",
+            options=["OpenRouter", "Ollama (local)"],
+            index=0,
+            disabled=not use_llm,
+        )
+        provider_key = "openrouter" if llm_provider == "OpenRouter" else "ollama"
+        provider_settings = get_provider_settings(provider_key)
         
         if use_llm:
-            api_key = get_openrouter_api_key()
-            if api_key:
-                st.success("✅ API ключ OpenRouter настроен")
+            if provider_key == "openrouter":
                 st.info("LLM анализ использует OpenRouter API для комплексной оценки")
             else:
-                st.error("❌ API ключ OpenRouter не найден")
-                st.warning("Для использования LLM анализа добавьте ключ в .streamlit/secrets.toml или переменную окружения OPENROUTER_API_KEY")
+                st.info("LLM анализ использует локальную модель Ollama")
+                st.caption(provider_settings["help_message"])
         else:
             st.info("Будет использован простой анализ по минимальной цене")
         
@@ -141,16 +173,24 @@ def main():
                 st.markdown("---")
                 st.subheader("🔍 Анализ предложений")
                 
-                api_key = get_openrouter_api_key()
-                
-                if use_llm and not api_key:
-                    st.error("❌ LLM анализ недоступен: API ключ не найден")
-                    st.info("Используйте простой анализ или настройте API ключ в .streamlit/secrets.toml")
-                
-                if st.button("🚀 Запустить анализ", type="primary", use_container_width=True, disabled=(use_llm and not api_key)):
+                if use_llm and not provider_settings["is_available"]:
+                    st.error(f"❌ LLM анализ недоступен для {llm_provider}")
+                    st.info("Используйте простой анализ или настройте провайдера LLM")
+
+                if st.button(
+                    "🚀 Запустить анализ",
+                    type="primary",
+                    use_container_width=True,
+                    disabled=(use_llm and not provider_settings["is_available"]),
+                ):
                     with st.spinner("Выполняется анализ..."):
-                        if use_llm and api_key:
-                            analyzer = LLMAnalyzer(api_key=api_key)
+                        if use_llm and provider_settings["is_available"]:
+                            analyzer = LLMAnalyzer(
+                                provider=provider_settings["provider"],
+                                api_key=provider_settings["api_key"],
+                                base_url=provider_settings["base_url"],
+                                model=provider_settings["model"],
+                            )
                             criteria = normalize_criteria_weights(
                                 weight_price, weight_delivery, weight_reliability
                             )

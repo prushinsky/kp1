@@ -4,9 +4,12 @@ from dotenv import load_dotenv
 load_dotenv()
 
 class Config:
+    LLM_PROVIDER = os.getenv("LLM_PROVIDER", "openrouter").strip().lower()
     OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
     OPENROUTER_BASE_URL = os.getenv("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
     OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openai/gpt-3.5-turbo")
+    OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434/v1")
+    OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.1")
     MAX_TOKENS = int(os.getenv("MAX_TOKENS", 1000))
     TEMPERATURE = float(os.getenv("TEMPERATURE", 0.7))
     

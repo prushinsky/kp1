@@ -45,8 +45,8 @@ fi
 if [ ! -f ".env" ]; then
     echo "Создание файла .env из примера..."
     cp .env.example .env
-    echo "⚠️  Отредактируйте файл .env и добавьте ваш OpenRouter API ключ"
-    echo "   OPENROUTER_API_KEY=your_api_key_here"
+    echo "⚠️  Отредактируйте файл .env и настройте LLM провайдера (OpenRouter или Ollama)"
+    echo "   Пример: LLM_PROVIDER=openrouter и OPENROUTER_API_KEY=your_api_key_here"
 fi
 
 echo ""
@@ -61,4 +61,4 @@ echo ""
 echo "Приложение будет доступно по адресу: http://localhost:8501"
 echo ""
 echo "Для тестирования без API ключа используйте простой анализ"
-echo "или получите ключ на https://openrouter.ai/"
+echo "Или настройте OpenRouter (https://openrouter.ai/) / локальную Ollama"

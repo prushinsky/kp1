@@ -87,7 +87,9 @@ def _register_pdf_font() -> str:
 
 
 def format_analysis_markdown(result: Dict[str, Any], rows_count: int, used_llm: bool, user_name: str) -> str:
-    mode_text = "LLM (OpenRouter)" if used_llm else "Простой анализ"
+    cfg = Config()
+    provider_name = "Ollama (local)" if cfg.LLM_PROVIDER == "ollama" else "OpenRouter"
+    mode_text = f"LLM ({provider_name})" if used_llm else "Простой анализ"
     lines = [
         "# Отчет по анализу коммерческих предложений",
         "",
@@ -212,7 +214,9 @@ def format_analysis_message(result: Dict[str, Any], rows_count: int, used_llm: b
             f"{esc(result['error'])}"
         )
 
-    mode_text = "LLM (OpenRouter)" if used_llm else "Простой анализ"
+    cfg = Config()
+    provider_name = "Ollama (local)" if cfg.LLM_PROVIDER == "ollama" else "OpenRouter"
+    mode_text = f"LLM ({provider_name})" if used_llm else "Простой анализ"
     header = (
         "✅ <b>Анализ завершен</b>\n"
         "──────────────────\n"
@@ -353,8 +357,11 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
         await update_status(status_message, 60, "Подготавливаю данные для анализа...")
         proposals = processor.prepare_analysis_data(df)
-        used_llm = cfg.TELEGRAM_USE_LLM and bool((cfg.OPENROUTER_API_KEY or "").strip())
-        analysis_mode = "LLM (OpenRouter)" if used_llm else "Простой анализ"
+        provider = (cfg.LLM_PROVIDER or "openrouter").strip().lower()
+        provider_ready = provider == "ollama" or bool((cfg.OPENROUTER_API_KEY or "").strip())
+        used_llm = cfg.TELEGRAM_USE_LLM and provider_ready
+        provider_name = "Ollama (local)" if provider == "ollama" else "OpenRouter"
+        analysis_mode = f"LLM ({provider_name})" if used_llm else "Простой анализ"
         await update_status(status_message, 80, "Выполняю анализ предложений...", f"Режим: {analysis_mode}")
         if used_llm:
             criteria = normalize_criteria_weights(
@@ -362,7 +369,12 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 cfg.TELEGRAM_WEIGHT_DELIVERY,
                 cfg.TELEGRAM_WEIGHT_RELIABILITY,
             )
-            analyzer = LLMAnalyzer(api_key=cfg.OPENROUTER_API_KEY, base_url=cfg.OPENROUTER_BASE_URL, model=cfg.OPENROUTER_MODEL)
+            analyzer = LLMAnalyzer(
+                provider=provider,
+                api_key=cfg.OPENROUTER_API_KEY if provider == "openrouter" else "ollama",
+                base_url=cfg.OPENROUTER_BASE_URL if provider == "openrouter" else cfg.OLLAMA_BASE_URL,
+                model=cfg.OPENROUTER_MODEL if provider == "openrouter" else cfg.OLLAMA_MODEL,
+            )
             result = analyzer.analyze_proposals(proposals, criteria)
         else:
             analyzer = LLMAnalyzer()

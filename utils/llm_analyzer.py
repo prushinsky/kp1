@@ -8,11 +8,27 @@ from config.config import Config
 logger = logging.getLogger(__name__)
 
 class LLMAnalyzer:
-    def __init__(self, api_key=None, base_url=None, model=None, max_tokens=None, temperature=None):
+    def __init__(
+        self,
+        api_key=None,
+        base_url=None,
+        model=None,
+        max_tokens=None,
+        temperature=None,
+        provider=None,
+    ):
         self.config = Config()
-        self.api_key = api_key or self.config.OPENROUTER_API_KEY
-        self.base_url = base_url or self.config.OPENROUTER_BASE_URL
-        self.model = model or self.config.OPENROUTER_MODEL
+        self.provider = (provider or self.config.LLM_PROVIDER or "openrouter").strip().lower()
+
+        if self.provider == "ollama":
+            self.api_key = api_key or "ollama"
+            self.base_url = base_url or self.config.OLLAMA_BASE_URL
+            self.model = model or self.config.OLLAMA_MODEL
+        else:
+            self.api_key = api_key or self.config.OPENROUTER_API_KEY
+            self.base_url = base_url or self.config.OPENROUTER_BASE_URL
+            self.model = model or self.config.OPENROUTER_MODEL
+
         self.max_tokens = max_tokens or self.config.MAX_TOKENS
         self.temperature = temperature or self.config.TEMPERATURE
         self._client = None
@@ -35,10 +51,10 @@ class LLMAnalyzer:
         if not proposals:
             return {"error": "No proposals provided"}
 
-        if not (self.api_key or "").strip():
+        if self.provider == "openrouter" and not (self.api_key or "").strip():
             return {"error": "Для LLM-анализа нужен API-ключ OpenRouter."}
 
-        if not self._is_openrouter_base_url(self.base_url):
+        if self.provider == "openrouter" and not self._is_openrouter_base_url(self.base_url):
             return {
                 "error": (
                     "LLM-анализ разрешен только через OpenRouter API. "
@@ -50,16 +66,25 @@ class LLMAnalyzer:
         user_prompt = self._create_user_prompt(proposals, criteria)
         
         try:
-            response = self.client.chat.completions.create(
-                model=self.model,
-                messages=[
+            request_payload = {
+                "model": self.model,
+                "messages": [
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
+                    {"role": "user", "content": user_prompt},
                 ],
-                temperature=self.temperature,
-                max_tokens=self.max_tokens,
-                response_format={"type": "json_object"}
-            )
+                "temperature": self.temperature,
+                "max_tokens": self.max_tokens,
+            }
+
+            if self.provider == "openrouter":
+                request_payload["response_format"] = {"type": "json_object"}
+
+            try:
+                response = self.client.chat.completions.create(**request_payload)
+            except Exception:
+                # Some Ollama models may not support response formatting parameters.
+                request_payload.pop("response_format", None)
+                response = self.client.chat.completions.create(**request_payload)
             
             result_text = response.choices[0].message.content
             result = json.loads(result_text)

@@ -36,7 +36,7 @@ pip install -r requirements.txt
 ### 4. Настройка окружения
 ```bash
 cp .env.example .env
-# Отредактируйте .env файл и добавьте ваш OpenRouter API ключ
+# Отредактируйте .env файл и выберите провайдер LLM
 ```
 
 ### 5. Создание тестовых данных (опционально)
@@ -49,14 +49,35 @@ python utils/create_test_data.py
 streamlit run main.py
 ```
 
-## Получение API ключа OpenRouter
+## Настройка LLM
+
+### Вариант A: OpenRouter (облако)
 
 1. Зарегистрируйтесь на [OpenRouter](https://openrouter.ai/)
 2. Перейдите в настройки аккаунта → API Keys
 3. Создайте новый API ключ
 4. Скопируйте ключ в файл `.env`:
    ```
+   LLM_PROVIDER=openrouter
    OPENROUTER_API_KEY=ваш_ключ_здесь
+   ```
+
+### Вариант B: Ollama (локально)
+
+1. Установите Ollama: [https://ollama.com](https://ollama.com)
+2. Запустите сервис:
+   ```bash
+   ollama serve
+   ```
+3. Скачайте модель (пример):
+   ```bash
+   ollama pull llama3.1
+   ```
+4. Укажите в `.env`:
+   ```
+   LLM_PROVIDER=ollama
+   OLLAMA_BASE_URL=http://localhost:11434/v1
+   OLLAMA_MODEL=llama3.1
    ```
 
 ## Тестирование без API ключа

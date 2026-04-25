@@ -50,10 +50,13 @@ def test_simple_analysis(proposals):
 def test_llm_analysis(proposals):
     print("\n\nТестирование LLM анализа (требуется API ключ)...")
     analyzer = LLMAnalyzer()
-    
-    if not analyzer.config.OPENROUTER_API_KEY or analyzer.config.OPENROUTER_API_KEY == "your_api_key_here":
-        print("⚠️ API ключ не установлен. Пропускаем LLM анализ.")
-        print("Установите OPENROUTER_API_KEY в .env файле или переменной окружения")
+
+    provider = (analyzer.config.LLM_PROVIDER or "openrouter").strip().lower()
+    if provider == "openrouter" and (
+        not analyzer.config.OPENROUTER_API_KEY or analyzer.config.OPENROUTER_API_KEY == "your_api_key_here"
+    ):
+        print("⚠️ API ключ OpenRouter не установлен. Пропускаем LLM анализ.")
+        print("Установите OPENROUTER_API_KEY в .env или переключитесь на LLM_PROVIDER=ollama")
         return None
     
     result = analyzer.analyze_proposals(proposals[:3])  # Тестируем на 3 предложениях

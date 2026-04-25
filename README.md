@@ -1,11 +1,11 @@
 # Анализатор коммерческих предложений
 
-Веб-приложение на Python для анализа и выбора лучшего коммерческого предложения с использованием LLM (OpenRouter API) и Streamlit UI.
+Веб-приложение на Python для анализа и выбора лучшего коммерческого предложения с использованием LLM (OpenRouter или локальная Ollama) и Streamlit UI.
 
 ## Функциональность
 
 - 📁 Загрузка Excel файлов с коммерческими предложениями
-- 🤖 Интеллектуальный анализ с помощью LLM (OpenRouter API)
+- 🤖 Интеллектуальный анализ с помощью LLM (OpenRouter или локальная Ollama)
 - 🤖 Telegram-бот для анализа Excel файлов в чате
 - 📊 Автоматический выбор лучшего предложения
 - 📝 Подробное объяснение выбора с анализом сильных/слабых сторон
@@ -45,17 +45,27 @@ venv\Scripts\activate  # для Windows
 pip install -r requirements.txt
 ```
 
-### 4. Настройка OpenRouter API
+### 4. Настройка LLM (OpenRouter или Ollama)
 
-1. Получите API ключ на [OpenRouter](https://openrouter.ai/)
-2. Создайте файл `.env` в корне проекта:
+1. Создайте файл `.env` в корне проекта:
 ```bash
 cp .env.example .env
 ```
-3. Отредактируйте `.env` и добавьте ваш API ключ:
+2. Выберите один из вариантов:
+
+- **OpenRouter (облако)**:
 ```
+LLM_PROVIDER=openrouter
 OPENROUTER_API_KEY=your_api_key_here
 ```
+
+- **Ollama (локально)**:
+```
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434/v1
+OLLAMA_MODEL=llama3.1
+```
+Убедитесь, что локальный сервер запущен (`ollama serve`) и модель загружена (`ollama pull llama3.1`).
 
 ### 5. Запуск приложения
 
@@ -123,6 +133,7 @@ commercial_proposal_analyzer/
 - Учет условий поставки и надежности контрагента
 - Подробное объяснение выбора
 - Анализ рисков и рекомендации
+- Поддержка провайдеров OpenRouter и Ollama
 
 ## Критерии оценки в LLM анализе
 
